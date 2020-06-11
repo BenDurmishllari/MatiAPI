@@ -19,3 +19,4 @@ login_manager.login_message_category = 'info'
 
 
 from Mati import route
+from Mati.model import User, Post, PostLike, followers
