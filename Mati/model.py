@@ -2,6 +2,12 @@ from Mati import db, app, route, login_manager
 from datetime import datetime
 from flask_login import UserMixin
 
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 followers = db.Table(
                       
                     'followers',
@@ -9,12 +15,7 @@ followers = db.Table(
                     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
 
-# PostLike = db.Table(
-                      
-#                 'PostLike',
-#                 db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-#                 db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
-# )
+
 
 class User(db.Model, UserMixin):
 
@@ -29,6 +30,7 @@ class User(db.Model, UserMixin):
                                 secondaryjoin = (followers.c.followed_id == id),
                                 backref = db.backref('followers', lazy = 'dynamic'),
                                 lazy = 'dynamic')
+
    
 
     liked = db.relationship('PostLike', foreign_keys='PostLike.user_id', backref='user', lazy='dynamic')
@@ -43,9 +45,7 @@ class User(db.Model, UserMixin):
             PostLike.query.filter_by(user_id=self.id,post_id=post.id).delete()
 
     def has_liked_post(self, post):
-        return PostLike.query.filter(
-            PostLike.user_id == self.id,
-            PostLike.post_id == post.id).count() > 0
+        return PostLike.query.filter(PostLike.user_id == self.id, PostLike.post_id == post.id).count() > 0
 
     def follow(self, user):
         if not self.is_following(user):
@@ -64,11 +64,12 @@ class User(db.Model, UserMixin):
         return f"User('{self.id}','{self.username}', '{self.email}','{self.password}'')"
 
 class Post(db.Model):
+    
     id = db.Column(db.Integer, primary_key=True)
-    imageDir = db.Column(db.Text, nullable = False)
+    imagePath = db.Column(db.Text, nullable = False)
     body = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, nullable = False, default = datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable = False)
     likes = db.relationship('PostLike', backref='post', lazy='dynamic')
 
     def __repr__(self):
