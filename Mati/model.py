@@ -16,8 +16,9 @@ followers = db.Table(
 )
 
 
-
 class User(db.Model, UserMixin):
+    
+    
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable = False)
@@ -73,7 +74,7 @@ class Post(db.Model):
     likes = db.relationship('PostLike', backref='post', lazy='dynamic')
 
     def __repr__(self):
-        return f"Post('{self.id}','{self.imageDir}', '{self.body}','{self.timestamp}'')"
+        return f"Post('{self.id}','{self.imagePath}', '{self.body}','{self.timestamp},'{self.author_id}'')"
 
 class PostLike(db.Model):
     
