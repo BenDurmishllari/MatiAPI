@@ -256,6 +256,7 @@ def followed_users_posts():
                     followedPostData['body'] = followedPost.body
                     followedPostData['timestamp'] = followedPost.timestamp
                     followedPostData['author'] = followedPost.author.username
+                    followedPostData['likes'] = str(followedPost.likes.count())
                     responseData.append(followedPostData)
                     
                 return jsonify({'List of images for the current user (most recent first, limited to users following)': responseData})
