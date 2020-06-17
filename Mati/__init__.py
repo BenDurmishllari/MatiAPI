@@ -23,6 +23,7 @@ bcrypt = Bcrypt(app)
 # Init Marshmallow
 marshmallow = Marshmallow(app)
 
+# Configs for upload folder
 UPLOAD_FOLDER = './Mati/static/uploadImages'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -31,9 +32,7 @@ CORS(app)
 
 # Init LoginManager
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
 
-login_manager.login_message_category = 'info'
 
 
 from Mati import route

@@ -39,6 +39,8 @@ posts_schema = PostSchema(many=True)
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['POST'])
 def login():
+    
+    '''Login route,  it is used to login the user, and to check if user is already authenticated'''
 
     if current_user.is_authenticated:
         return jsonify({'message': 'You\'re already login'})
@@ -56,8 +58,15 @@ def login():
                 return jsonify({'message': 'Wrong credentials!'})
 
 
+@app.route('/logout', methods=['POST'])
+def logout():
+    logout_user()
+    return jsonify({'message': 'You have logout'})
+
 @app.route('/register', methods=['POST'])
 def register():
+
+    '''Register route, it creates users accounts'''
 
     if request.method == 'POST':
 
@@ -65,10 +74,10 @@ def register():
         email = request.json['email']
         password = request.json['password']
 
-        checkInputEmail = emailValidator.checkEmail(email)
-        checkInputUserName = uniqueUsername.checkUsername(username)
+        checkEmail = emailValidator.checkEmail(email)
+        checkUserName = uniqueUsername.checkUsername(username)
 
-        if checkInputEmail == "Email is valid!" and checkInputUserName == "Username don't exist":
+        if checkEmail == "Email is valid!" and checkUserName == "Username don't exist":
 
             hased_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
@@ -81,20 +90,25 @@ def register():
 
             return user_schema.jsonify(new_user)
         else:
-            if checkInputEmail == "Email is not valid":
+            if checkEmail == "Email is not valid":
                 return jsonify({'message': 'Please add a valid email'})
-            if checkInputUserName == "Username exist":
+            if checkUserName == "Username exist":
                 return jsonify({'message': 'Username exist, please use another username'})
 
 
 def allowed_file(filename):
+
+    ''' Check if the file extenxion is valid '''
+
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
 @app.route('/newPost', methods=['POST'])
+@login_required
 def new_post():
+
+    ''' New post route, it is used to create users posts '''
 
     if request.method == 'POST':
         
@@ -129,7 +143,10 @@ def new_post():
 
 
 @app.route('/follow/<username>', methods=['POST'])
+@login_required
 def follow(username):
+
+    ''' Follow route, it is used for following users '''
 
     if request.method == 'POST':
 
@@ -151,7 +168,10 @@ def follow(username):
 
 
 @app.route('/unfollow/<username>', methods=['POST'])
+@login_required
 def unfollow(username):
+
+    ''' Unfollow route, it is used for unfollowing users '''
     
     if request.method == 'POST':
 
@@ -169,7 +189,10 @@ def unfollow(username):
 
 
 @app.route('/like/<int:post_id>', methods=['POST'])
+@login_required
 def like_action(post_id):
+
+    ''' Like route, it is used to like a post '''
     
     if request.method == 'POST':
 
@@ -186,7 +209,10 @@ def like_action(post_id):
 
 
 @app.route('/unlike/<int:post_id>', methods=['POST'])
+@login_required
 def unlike_action(post_id):
+
+    ''' Like route, it is used to unlike a post '''
 
     if request.method == 'POST':
 
@@ -202,69 +228,97 @@ def unlike_action(post_id):
             return jsonify({'message': 'You unlike the post'})
 
 
-@app.route('/usersPosts', methods=['GET'])
-def follwed_users_posts():
+@app.route('/followedUsersPosts', methods=['GET'])
+@login_required
+def followed_users_posts():
+
+    ''' 
+        Followed users posts route, 
+        it returns the list of images for the current user (most recent first, limited to users following) 
+    '''
 
     if request.method == 'GET':
-        
-        followedPosts = Post.query.join(followers, 
-                                        followers.c.followed_id == Post.author_id) \
-                                        .filter(followers.c.follower_id == current_user.id) \
-                                        .order_by(Post.timestamp.desc()).all()
-        
-        responseData = []
+        try:
+            followedPosts = Post.query.join(followers, 
+                                            followers.c.followed_id == Post.author_id) \
+                                            .filter(followers.c.follower_id == current_user.id) \
+                                            .order_by(Post.timestamp.desc()).all()
+            if not followedPosts:
+                return jsonify({'message': 'Your followed users don\'t have any post yet'})
+            else:
+                responseData = []
 
-        for followedPost in followedPosts:
+                for followedPost in followedPosts:
 
-            followedPostData = {}
-            followedPostData['image'] = followedPost.imagePath
-            followedPostData['timestamp'] = followedPost.timestamp
-            responseData.append(followedPostData)
-            
-        return jsonify({'List of images for the current user (most recent first, limited to users following)': responseData})
+                    followedPostData = {}
+                    followedPostData['id'] = followedPost.id
+                    followedPostData['image'] = followedPost.imagePath
+                    followedPostData['body'] = followedPost.body
+                    followedPostData['timestamp'] = followedPost.timestamp
+                    followedPostData['author'] = followedPost.author.username
+                    responseData.append(followedPostData)
+                    
+                return jsonify({'List of images for the current user (most recent first, limited to users following)': responseData})
+        except:
+            return jsonify({'message': 'Something went wrong, please try again!'})
 
 @app.route('/posts', methods=['GET'])
+@login_required
 def get_all_posts():
+
+    ''' Get all posts route, it returns the list of all posts (ordered by likes) '''
 
     if request.method == 'GET':
 
         posts = db.session.query(Post).outerjoin(PostLike).group_by(Post.id) \
                                                           .order_by(func.count().desc()).all()
-        
-        responseData = []
+        if not posts:
+            return jsonify({'message': 'No posts yet'})
+        else:
+            responseData = []
 
-        for post in posts:
+            for post in posts:
 
-            postData = {}
-            postData['id'] = str(post.id)
-            postData['body'] = post.body
-            postData['imagePath'] = post.imagePath
-            postData['timestamp'] = post.timestamp
-            postData['author'] = post.author.username
-            postData['likes'] = str(post.likes.count())
-            responseData.append(postData)
-        
-        return jsonify({'List of all posts (ordered by likes)': responseData})
+                postData = {}
+                postData['id'] = str(post.id)
+                postData['body'] = post.body
+                postData['imagePath'] = post.imagePath
+                postData['timestamp'] = post.timestamp
+                postData['author'] = post.author.username
+                postData['likes'] = str(post.likes.count())
+                responseData.append(postData)
+            
+            return jsonify({'List of all posts (ordered by likes)': responseData})
 
 
 
 @app.route('/users', methods=['GET'])
+@login_required
 def get_all_users():
+
+    ''' 
+        Get all users route, 
+        it returns the list of all users (including information on the number of following and followers). 
+    '''
     
     if request.method == 'GET':
 
         users = User.query.all()
-        responseData = []
 
-        for user in users:
+        if not users:
+            return jsonify({'message': 'No recorded users yet'})
+        else:
+            responseData = []
 
-            userData = {}
-            userData['id'] = user.id
-            userData['username'] = user.username
-            userData['email'] = user.email
-            userData['posts'] = str(user.posts.count())
-            userData['followers'] = str(user.followed.count()) 
-            userData['following'] = str(user.followers.count())
-            responseData.append(userData)
-        
-        return jsonify({'List of all users (including information on the number of following and followers).': responseData})
+            for user in users:
+
+                userData = {}
+                userData['id'] = user.id
+                userData['username'] = user.username
+                userData['email'] = user.email
+                userData['posts'] = str(user.posts.count())
+                userData['following'] = str(user.followed.count()) 
+                userData['followers'] = str(user.followers.count())
+                responseData.append(userData)
+            
+            return jsonify({'List of all users (including information on the number of following and followers)': responseData})
