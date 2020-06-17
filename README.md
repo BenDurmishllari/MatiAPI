@@ -9,5 +9,16 @@ API for image sharing application
 
 ------------------------------------------------------------------
 
+Task requirements
+
+1. Images have a caption, limited to 100 chars. ✓
+2. A user can follow/unfollow another user. ✓
+3. Current user can like a post (image). ✓
+4. List of images for the current user (most recent first, limited to users following). ✓
+5. List of all posts (ordered by likes). ✓
+6. List of all users (including information on the number of following and followers). ✓
+
+------------------------------------------------------------------
+
 
 
